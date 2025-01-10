@@ -16,7 +16,7 @@ export default function App() {
       new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" })
     );
     const pastTime = new Date(nowInBelgium);
-    pastTime.setDate(nowInBelgium.getDate() - 5000); // Go back 4 days
+    pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 4 days
     pastTime.setHours(17); // 5:40 PM (17:40 in 24-hour format)
     pastTime.setMinutes(39);
     pastTime.setSeconds(59);
@@ -155,7 +155,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-[500px]">
+      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-[520px]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <Timer className="w-8 h-8 text-blue-400 mr-2" />
@@ -205,7 +205,7 @@ export default function App() {
 
         <div className="mb-8">
           <h2 className="text-white text-xl">Main Stopwatch</h2>
-          <div className="w-auto inline-flex items-center justify-center bg-white/20 text-white font-mono text-center p-4 rounded-lg text-6xl">
+          <div className="w-auto inline-flex items-center justify-center bg-white/15 text-white font-mono text-center p-4 rounded-lg text-4xl">
             {formattedMainTime}
           </div>
           <p className="text-xs text-gray-400">
