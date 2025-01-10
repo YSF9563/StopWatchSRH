@@ -28,9 +28,22 @@ export default function App() {
   const [stopwatches, setStopwatches] = useState<SavedStopwatch[]>([]);
   const [saveName, setSaveName] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [editingName, setEditingName] = useState<string | null>(null); // State for editing name
-  const [newName, setNewName] = useState<string>(""); // State for new name input
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [newName, setNewName] = useState<string>("");
   const [referenceTime] = useState(calculateInitialTime());
+
+  // Load saved stopwatches from localStorage on initial render
+  useEffect(() => {
+    const savedStopwatches = localStorage.getItem("savedStopwatches");
+    if (savedStopwatches) {
+      setStopwatches(JSON.parse(savedStopwatches));
+    }
+  }, []);
+
+  // Save stopwatches to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("savedStopwatches", JSON.stringify(stopwatches));
+  }, [stopwatches]);
 
   const addStopwatch = () => {
     const newStopwatch: SavedStopwatch = {
@@ -41,6 +54,7 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setStopwatches((prev) => [...prev, newStopwatch]);
+    setSaveName("");
   };
 
   const updateStopwatchTime = () => {
@@ -69,42 +83,10 @@ export default function App() {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-  
-    // Separate full 1k hours and 1M hours
-    const fullMHours = Math.floor(hours / 1000000); // Full 1M hours
-    const fullKHours = Math.floor((hours % 1000000) / 1000); // Full 1k hours
-    const remainingHours = hours % 1000; // Remaining hours
-  
-    // Build the time string
-    let formattedTime = "";
-  
-    if (fullMHours > 0) {
-      formattedTime += `${fullMHours}M`;
-    } else if (fullKHours > 0) {
-      formattedTime += `${fullKHours}k`;
-    } else {
-      formattedTime += remainingHours.toString();
-    }
-  
-    // Always include minutes and seconds
-    formattedTime += `:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-  
-    return formattedTime;
-  };
 
-  const getFontSizeClass = (formattedTime: string) => {
-    const length = formattedTime.length;
-
-    // Adjust these thresholds and sizes based on your design preferences
-    if (length < 10) {
-      return "text-6xl"; // For short times (e.g., hours < 10)
-    } else if (length < 15) {
-      return "text-5xl"; // For medium-length times
-    } else if (length < 20) {
-      return "text-4xl"; // For longer times
-    } else {
-      return "text-3xl"; // For very long times (e.g., 1k hours)
-    }
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   const toggleStopwatch = (id: string) => {
@@ -123,25 +105,8 @@ export default function App() {
     );
   };
 
-  const handleSave = () => {
-    const newStopwatch: SavedStopwatch = {
-      id: Date.now().toString(),
-      name: saveName || "New Stopwatch",
-      time: 0,
-      isRunning: false,
-      createdAt: new Date().toISOString(),
-    };
-    const updatedStopwatches = [...stopwatches, newStopwatch];
-    setStopwatches(updatedStopwatches);
-    localStorage.setItem("savedStopwatches", JSON.stringify(updatedStopwatches));
-    setSaveName("");
-    setShowSaveDialog(false);
-  };
-
   const deleteSavedStopwatch = (id: string) => {
-    const updatedStopwatches = stopwatches.filter((sw) => sw.id !== id);
-    setStopwatches(updatedStopwatches);
-    localStorage.setItem("savedStopwatches", JSON.stringify(updatedStopwatches));
+    setStopwatches((prev) => prev.filter((sw) => sw.id !== id));
   };
 
   const handleNameEdit = (id: string) => {
@@ -157,11 +122,10 @@ export default function App() {
       )
     );
     setEditingName(null);
-    localStorage.setItem("savedStopwatches", JSON.stringify(stopwatches));
   };
 
   const formattedMainTime = formatTime(mainTime);
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
       <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-96">
@@ -197,7 +161,7 @@ export default function App() {
                 className="flex-1 bg-white/20 text-white p-2 rounded-lg"
               />
               <button
-                onClick={handleSave}
+                onClick={addStopwatch}
                 className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
               >
                 Save
@@ -214,8 +178,7 @@ export default function App() {
 
         <div className="mb-8">
           <h2 className="text-white text-xl">Main Stopwatch</h2>
-          
-          <div className={`w-full bg-white/20 text-white font-mono text-center p-4 rounded-lg ${getFontSizeClass(formattedMainTime)}`}>
+          <div className="w-full bg-white/20 text-white font-mono text-center p-4 rounded-lg text-6xl">
             {formattedMainTime}
           </div>
           <p className="text-xs text-gray-400">
@@ -258,8 +221,6 @@ export default function App() {
                   </p>
                 </>
               )}
-
-              {/* Buttons for control */}
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => toggleStopwatch(sw.id)}
@@ -277,7 +238,7 @@ export default function App() {
                   onClick={() => deleteSavedStopwatch(sw.id)}
                   className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
