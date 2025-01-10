@@ -9,15 +9,15 @@ interface SavedStopwatch {
 }
 
 export default function App() {
-  // Get Belgium's current time using the Europe/Brussels time zone
+  // Get Belgium's current time considering daylight saving time
   const calculateInitialTime = () => {
     const nowInBelgium = new Date(
-      new Intl.DateTimeFormat("en-US", {
+      new Date().toLocaleString("en-US", {
         timeZone: "Europe/Brussels",
-      }).format(new Date())
+      })
     );
     const pastTime = new Date(nowInBelgium);
-    pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 5 days
+    pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 4 days
     pastTime.setHours(17); // 5:40 PM (17:40 in 24-hour format)
     pastTime.setMinutes(39);
     pastTime.setSeconds(59);
@@ -32,7 +32,7 @@ export default function App() {
   const [savedStopwatches, setSavedStopwatches] = useState<SavedStopwatch[]>([]);
   const [saveName, setSaveName] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [referenceTime] = useState(calculateInitialTime());
+  const [referenceTime] = useState(calculateInitialTime()); // Reference time based on Brussels
   const intervalRef = useRef<number>();
 
   useEffect(() => {
@@ -46,7 +46,12 @@ export default function App() {
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = window.setInterval(() => {
-        setTime(Date.now() - referenceTime); // Calculate time difference from referenceTime
+        const nowInBelgium = new Date(
+          new Date().toLocaleString("en-US", {
+            timeZone: "Europe/Brussels",
+          })
+        );
+        setTime(nowInBelgium.getTime() - referenceTime); // Time difference from Brussels reference time
       }, 1000); // Update every second
     }
     return () => {
@@ -62,10 +67,8 @@ export default function App() {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    // If hours exceed 999, show the number of million hours
     let formattedHours;
     if (hours >= 1000000) {
-      // Calculate the number of million hours
       const millionHours = Math.floor(hours / 1000000);
       formattedHours = millionHours.toString().padStart(1, "0");
     } else {
