@@ -154,8 +154,8 @@ export default function App() {
   const formattedMainTime = formatMainTime(mainTime);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center sm:scale-90">
-      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-[500px] sm:w-[350px]">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-[500px]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <Timer className="w-8 h-8 text-blue-400 mr-2" />
