@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Timer, Pause, Play, RotateCcw, Save, List, X } from "lucide-react";
 
 interface SavedStopwatch {
@@ -10,7 +10,6 @@ interface SavedStopwatch {
 }
 
 export default function App() {
-  // Get Belgium's current time considering daylight saving time
   const calculateInitialTime = () => {
     const nowInBelgium = new Date(
       new Date().toLocaleString("en-US", {
@@ -25,13 +24,14 @@ export default function App() {
     return pastTime.getTime();
   };
 
-  const [mainTime, setMainTime] = useState(0);  // Main timer time based on reference
+  const [mainTime, setMainTime] = useState(0);
   const [stopwatches, setStopwatches] = useState<SavedStopwatch[]>([]);
   const [saveName, setSaveName] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [referenceTime] = useState(calculateInitialTime()); // Reference time for the main stopwatch
+  const [editingName, setEditingName] = useState<string | null>(null); // State for editing name
+  const [newName, setNewName] = useState<string>(""); // State for new name input
+  const [referenceTime] = useState(calculateInitialTime());
 
-  // Add a new stopwatch
   const addStopwatch = () => {
     const newStopwatch: SavedStopwatch = {
       id: Date.now().toString(),
@@ -43,19 +43,16 @@ export default function App() {
     setStopwatches((prev) => [...prev, newStopwatch]);
   };
 
-  // Update the main timer and other stopwatches' time
   const updateStopwatchTime = () => {
-    // Update the main timer
     const nowInBelgium = new Date(
       new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" })
     );
-    setMainTime(nowInBelgium.getTime() - referenceTime); // Main timer based on Brussels reference time
+    setMainTime(nowInBelgium.getTime() - referenceTime);
 
-    // Update each stopwatch time
     setStopwatches((prev) =>
       prev.map((sw) => {
         if (sw.isRunning) {
-          return { ...sw, time: sw.time + 1000 };  // Increment stopwatch time if it's running
+          return { ...sw, time: sw.time + 1000 }; // Increment stopwatch time if running
         }
         return sw;
       })
@@ -63,7 +60,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    const interval = setInterval(updateStopwatchTime, 1000); // Update every second
+    const interval = setInterval(updateStopwatchTime, 1000);
     return () => clearInterval(interval);
   }, [referenceTime]);
 
@@ -104,14 +101,30 @@ export default function App() {
     const updatedStopwatches = [...stopwatches, newStopwatch];
     setStopwatches(updatedStopwatches);
     localStorage.setItem("savedStopwatches", JSON.stringify(updatedStopwatches));
-    setSaveName(""); // Reset the save name input after saving
-    setShowSaveDialog(false); // Close save dialog
+    setSaveName("");
+    setShowSaveDialog(false);
   };
 
   const deleteSavedStopwatch = (id: string) => {
     const updatedStopwatches = stopwatches.filter((sw) => sw.id !== id);
     setStopwatches(updatedStopwatches);
     localStorage.setItem("savedStopwatches", JSON.stringify(updatedStopwatches));
+  };
+
+  const handleNameEdit = (id: string) => {
+    setEditingName(id);
+    const stopwatch = stopwatches.find((sw) => sw.id === id);
+    if (stopwatch) setNewName(stopwatch.name);
+  };
+
+  const handleNameChange = (id: string) => {
+    setStopwatches((prev) =>
+      prev.map((sw) =>
+        sw.id === id ? { ...sw, name: newName } : sw
+      )
+    );
+    setEditingName(null);
+    localStorage.setItem("savedStopwatches", JSON.stringify(stopwatches));
   };
 
   return (
@@ -164,7 +177,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Main Stopwatch (based on reference time) */}
         <div className="mb-8">
           <h2 className="text-white text-xl">Main Stopwatch</h2>
           <div className="w-full bg-white/20 text-white text-4xl font-mono text-center p-4 rounded-lg">
@@ -172,21 +184,44 @@ export default function App() {
           </div>
         </div>
 
-        {/* Independent Stopwatches */}
         <div className="mb-8 space-y-4">
           {stopwatches.map((sw) => (
             <div
               key={sw.id}
-              className="bg-white/20 p-4 rounded-lg flex items-center justify-between"
+              className="bg-white/20 p-4 rounded-lg flex flex-col items-start justify-between"
             >
-              <div>
-                <h3 className="text-white font-semibold">{sw.name}</h3>
-                <p className="text-blue-300">{formatTime(sw.time)}</p>
-                <p className="text-xs text-gray-400">
-                  {new Date(sw.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex gap-2">
+              {editingName === sw.id ? (
+                <>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="bg-white/20 text-white p-2 rounded-lg mb-2"
+                  />
+                  <button
+                    onClick={() => handleNameChange(sw.id)}
+                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg mb-2"
+                  >
+                    Save Name
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3
+                    className="text-white font-semibold cursor-pointer"
+                    onClick={() => handleNameEdit(sw.id)}
+                  >
+                    {sw.name}
+                  </h3>
+                  <p className="text-blue-300">{formatTime(sw.time)}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(sw.createdAt).toLocaleDateString()}
+                  </p>
+                </>
+              )}
+
+              {/* Buttons for control */}
+              <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => toggleStopwatch(sw.id)}
                   className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
