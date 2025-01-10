@@ -139,7 +139,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-96">
+      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-full max-w-xl sm:w-11/12 md:w-96">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <Timer className="w-8 h-8 text-blue-400 mr-2" />
@@ -189,10 +189,10 @@ export default function App() {
 
         <div className="mb-8">
           <h2 className="text-white text-xl">Main Stopwatch</h2>
-          <div className="w-full bg-white/20 text-white font-mono text-center p-4 rounded-lg text-6xl">
+          <div className="w-full bg-white/20 text-white font-mono text-center p-4 rounded-lg text-6xl sm:text-5xl md:text-6xl lg:text-7xl">
             {formattedMainTime}
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 mt-2">
             monday 6 jan 2025 at 17:40
           </p>
         </div>
