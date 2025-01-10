@@ -5,6 +5,7 @@ interface SavedStopwatch {
   id: string;
   name: string;
   time: number;
+  isRunning: boolean;
   createdAt: string;
 }
 
@@ -24,107 +25,93 @@ export default function App() {
     return pastTime.getTime();
   };
 
-  const [time, setTime] = useState(0);
-  const [isRunning, setIsRunning] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState("");
-  const [showSaved, setShowSaved] = useState(false);
-  const [savedStopwatches, setSavedStopwatches] = useState<SavedStopwatch[]>([]);
+  const [mainTime, setMainTime] = useState(0);  // Main timer time based on reference
+  const [stopwatches, setStopwatches] = useState<SavedStopwatch[]>([]);
   const [saveName, setSaveName] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [referenceTime] = useState(calculateInitialTime()); // Reference time based on Brussels
-  const intervalRef = useRef<number>();
+  const [referenceTime] = useState(calculateInitialTime()); // Reference time for the main stopwatch
 
-  useEffect(() => {
-    // Load saved stopwatches from localStorage
-    const saved = localStorage.getItem("savedStopwatches");
-    if (saved) {
-      setSavedStopwatches(JSON.parse(saved));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = window.setInterval(() => {
-        const nowInBelgium = new Date(
-          new Date().toLocaleString("en-US", {
-            timeZone: "Europe/Brussels",
-          })
-        );
-        setTime(nowInBelgium.getTime() - referenceTime); // Time difference from Brussels reference time
-      }, 1000); // Update every second
-    }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+  // Add a new stopwatch
+  const addStopwatch = () => {
+    const newStopwatch: SavedStopwatch = {
+      id: Date.now().toString(),
+      name: saveName || "New Stopwatch",
+      time: 0,
+      isRunning: false,
+      createdAt: new Date().toISOString(),
     };
-  }, [isRunning, referenceTime]);
+    setStopwatches((prev) => [...prev, newStopwatch]);
+  };
+
+  // Update the main timer and other stopwatches' time
+  const updateStopwatchTime = () => {
+    // Update the main timer
+    const nowInBelgium = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" })
+    );
+    setMainTime(nowInBelgium.getTime() - referenceTime); // Main timer based on Brussels reference time
+
+    // Update each stopwatch time
+    setStopwatches((prev) =>
+      prev.map((sw) => {
+        if (sw.isRunning) {
+          return { ...sw, time: sw.time + 1000 };  // Increment stopwatch time if it's running
+        }
+        return sw;
+      })
+    );
+  };
+
+  useEffect(() => {
+    const interval = setInterval(updateStopwatchTime, 1000); // Update every second
+    return () => clearInterval(interval);
+  }, [referenceTime]);
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-
-    let formattedHours;
-    if (hours >= 1000000) {
-      const millionHours = Math.floor(hours / 1000000);
-      formattedHours = millionHours.toString().padStart(1, "0");
-    } else {
-      formattedHours = hours.toString().padStart(3, "0");
-    }
-
-    return `${formattedHours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  const handleEdit = () => {
-    if (isEditing) {
-      const [h, m, s] = editValue.split(":").map(Number);
-      if (!isNaN(h) && !isNaN(m) && !isNaN(s)) {
-        const newTime = (h * 60 * 60 + m * 60 + s) * 1000;
-        setTime(newTime);
-      }
-    }
-    setIsEditing(!isEditing);
+  const toggleStopwatch = (id: string) => {
+    setStopwatches((prev) =>
+      prev.map((sw) =>
+        sw.id === id ? { ...sw, isRunning: !sw.isRunning } : sw
+      )
+    );
   };
 
-  const toggleTimer = () => {
-    setIsRunning(!isRunning);
-  };
-
-  const resetTimer = () => {
-    setTime(0);
-    setIsRunning(false);
+  const resetStopwatch = (id: string) => {
+    setStopwatches((prev) =>
+      prev.map((sw) =>
+        sw.id === id ? { ...sw, time: 0, isRunning: false } : sw
+      )
+    );
   };
 
   const handleSave = () => {
-    if (!saveName.trim()) return;
-
     const newStopwatch: SavedStopwatch = {
       id: Date.now().toString(),
-      name: saveName,
-      time,
+      name: saveName || "New Stopwatch",
+      time: 0,
+      isRunning: false,
       createdAt: new Date().toISOString(),
     };
-
-    const updatedStopwatches = [...savedStopwatches, newStopwatch];
-    setSavedStopwatches(updatedStopwatches);
+    const updatedStopwatches = [...stopwatches, newStopwatch];
+    setStopwatches(updatedStopwatches);
     localStorage.setItem("savedStopwatches", JSON.stringify(updatedStopwatches));
-
-    setSaveName("");
-    setShowSaveDialog(false);
+    setSaveName(""); // Reset the save name input after saving
+    setShowSaveDialog(false); // Close save dialog
   };
 
   const deleteSavedStopwatch = (id: string) => {
-    const updatedStopwatches = savedStopwatches.filter((sw) => sw.id !== id);
-    setSavedStopwatches(updatedStopwatches);
+    const updatedStopwatches = stopwatches.filter((sw) => sw.id !== id);
+    setStopwatches(updatedStopwatches);
     localStorage.setItem("savedStopwatches", JSON.stringify(updatedStopwatches));
-  };
-
-  const loadSavedStopwatch = (savedTime: number) => {
-    setTime(savedTime);
-    setShowSaved(false);
   };
 
   return (
@@ -137,13 +124,13 @@ export default function App() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setShowSaveDialog(true)}
+              onClick={addStopwatch}
               className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full transition-colors"
             >
               <Save className="w-5 h-5" />
             </button>
             <button
-              onClick={() => setShowSaved(!showSaved)}
+              onClick={() => setShowSaveDialog(true)}
               className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-full transition-colors"
             >
               <List className="w-5 h-5" />
@@ -177,84 +164,50 @@ export default function App() {
           </div>
         )}
 
-        {showSaved ? (
-          <div className="mb-8 space-y-2 max-h-[300px] overflow-y-auto">
-            {savedStopwatches.length === 0 ? (
-              <p className="text-white text-center">No saved stopwatches</p>
-            ) : (
-              savedStopwatches.map((sw) => (
-                <div
-                  key={sw.id}
-                  className="bg-white/20 p-4 rounded-lg flex items-center justify-between"
-                >
-                  <div>
-                    <h3 className="text-white font-semibold">{sw.name}</h3>
-                    <p className="text-blue-300">{formatTime(sw.time)}</p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(sw.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => loadSavedStopwatch(sw.time)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
-                    >
-                      Load
-                    </button>
-                    <button
-                      onClick={() => deleteSavedStopwatch(sw.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+        {/* Main Stopwatch (based on reference time) */}
+        <div className="mb-8">
+          <h2 className="text-white text-xl">Main Stopwatch</h2>
+          <div className="w-full bg-white/20 text-white text-4xl font-mono text-center p-4 rounded-lg">
+            {formatTime(mainTime)}
           </div>
-        ) : (
-          <div className="mb-8">
-            {isEditing ? (
-              <input
-                type="text"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                className="w-full bg-white/20 text-white text-4xl font-mono text-center p-4 rounded-lg"
-                placeholder="000:00:00"
-              />
-            ) : (
-              <div
-                onClick={() => {
-                  setIsEditing(true);
-                  setEditValue(formatTime(time));
-                }}
-                className="w-full bg-white/20 text-white text-4xl font-mono text-center p-4 rounded-lg cursor-pointer hover:bg-white/25 transition-colors"
-              >
-                {formatTime(time)}
-              </div>
-            )}
-          </div>
-        )}
+        </div>
 
-        <div className="flex justify-center space-x-4">
-          <button
-            onClick={toggleTimer}
-            className="bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-full transition-colors"
-          >
-            {isRunning ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-          </button>
-          <button
-            onClick={resetTimer}
-            className="bg-red-500 hover:bg-red-600 text-white p-3 rounded-full transition-colors"
-          >
-            <RotateCcw className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handleEdit}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            {isEditing ? "Save" : "Edit"}
-          </button>
+        {/* Independent Stopwatches */}
+        <div className="mb-8 space-y-4">
+          {stopwatches.map((sw) => (
+            <div
+              key={sw.id}
+              className="bg-white/20 p-4 rounded-lg flex items-center justify-between"
+            >
+              <div>
+                <h3 className="text-white font-semibold">{sw.name}</h3>
+                <p className="text-blue-300">{formatTime(sw.time)}</p>
+                <p className="text-xs text-gray-400">
+                  {new Date(sw.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toggleStopwatch(sw.id)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors"
+                >
+                  {sw.isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                </button>
+                <button
+                  onClick={() => resetStopwatch(sw.id)}
+                  className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => deleteSavedStopwatch(sw.id)}
+                  className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
