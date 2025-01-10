@@ -6,16 +6,14 @@ interface SavedStopwatch {
   name: string;
   time: number;
   isRunning: boolean;
-  lastRunTimestamp: number; // Add lastRunTimestamp to track when it was last running
+  lastRunTimestamp: number;
   createdAt: string;
 }
 
 export default function App() {
   const calculateInitialTime = () => {
     const nowInBelgium = new Date(
-      new Date().toLocaleString("en-US", {
-        timeZone: "Europe/Brussels",
-      })
+      new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" })
     );
     const pastTime = new Date(nowInBelgium);
     pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 4 days
@@ -52,7 +50,7 @@ export default function App() {
       name: saveName || "New Stopwatch",
       time: 0,
       isRunning: false,
-      lastRunTimestamp: 0, // Initialize lastRunTimestamp
+      lastRunTimestamp: 0,
       createdAt: new Date().toISOString(),
     };
     setStopwatches((prev) => [...prev, newStopwatch]);
@@ -69,7 +67,7 @@ export default function App() {
       prev.map((sw) => {
         if (sw.isRunning) {
           const timeElapsed = Date.now() - sw.lastRunTimestamp;
-          return { ...sw, time: sw.time + timeElapsed, lastRunTimestamp: Date.now() }; // Update time with timeElapsed
+          return { ...sw, time: sw.time + timeElapsed, lastRunTimestamp: Date.now() };
         }
         return sw;
       })
@@ -81,16 +79,34 @@ export default function App() {
     return () => clearInterval(interval);
   }, [referenceTime]);
 
-  const formatTime = (ms: number) => {
+  const formatMainTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
+    
+    let formattedTime = "";
+  
+    // Extract million, thousand, and normal hours
+    const millionHours = Math.floor(hours / 1000000);
+    const thousandHours = Math.floor((hours % 1000000) / 1000);
+    const normalHours = hours % 1000;
+  
+    // Format the time components
+    if (millionHours > 0) formattedTime += `${millionHours}M:`;
+    if (thousandHours > 0) formattedTime += `${thousandHours}k:`;
+    if (normalHours > 0) formattedTime += `${normalHours}:`;
+  
+    // Add minutes and seconds
+    formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
+    formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+  
+    return formattedTime;
   };
+  
+  
+  
+  
 
   const toggleStopwatch = (id: string) => {
     setStopwatches((prev) =>
@@ -135,11 +151,11 @@ export default function App() {
     setEditingName(null);
   };
 
-  const formattedMainTime = formatTime(mainTime);
+  const formattedMainTime = formatMainTime(mainTime);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-full max-w-xl sm:w-11/12 md:w-96">
+      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-full max-w-[600px]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <Timer className="w-8 h-8 text-blue-400 mr-2" />
@@ -189,10 +205,10 @@ export default function App() {
 
         <div className="mb-8">
           <h2 className="text-white text-xl">Main Stopwatch</h2>
-          <div className="w-full bg-white/20 text-white font-mono text-center p-4 rounded-lg text-6xl sm:text-5xl md:text-6xl lg:text-7xl">
+          <div className="w-auto inline-flex items-center justify-center bg-white/20 text-white font-mono text-center p-4 rounded-lg text-6xl">
             {formattedMainTime}
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-400">
             monday 6 jan 2025 at 17:40
           </p>
         </div>
@@ -226,7 +242,7 @@ export default function App() {
                   >
                     {sw.name}
                   </h3>
-                  <p className="text-blue-300">{formatTime(sw.time)}</p>
+                  <p className="text-blue-300">{formatMainTime(sw.time)}</p>
                   <p className="text-xs text-gray-400">
                     {new Date(sw.createdAt).toLocaleDateString()}
                   </p>
