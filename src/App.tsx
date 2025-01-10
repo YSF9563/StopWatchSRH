@@ -16,7 +16,7 @@ export default function App() {
       new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" })
     );
     const pastTime = new Date(nowInBelgium);
-    pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 4 days
+    pastTime.setDate(nowInBelgium.getDate() - 5000); // Go back 4 days
     pastTime.setHours(17); // 5:40 PM (17:40 in 24-hour format)
     pastTime.setMinutes(39);
     pastTime.setSeconds(59);
@@ -29,6 +29,7 @@ export default function App() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [editingName, setEditingName] = useState<string | null>(null);
   const [newName, setNewName] = useState<string>("");
+
   const [referenceTime] = useState(calculateInitialTime());
 
   // Load saved stopwatches from localStorage on initial render
@@ -84,29 +85,28 @@ export default function App() {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    
+  
     let formattedTime = "";
   
-    // Extract million, thousand, and normal hours
-    const millionHours = Math.floor(hours / 1000000);
-    const thousandHours = Math.floor((hours % 1000000) / 1000);
-    const normalHours = hours % 1000;
-  
-    // Format the time components
-    if (millionHours > 0) formattedTime += `${millionHours}M:`;
-    if (thousandHours > 0) formattedTime += `${thousandHours}k:`;
-    if (normalHours > 0) formattedTime += `${normalHours}:`;
-  
-    // Add minutes and seconds
-    formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
-    formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+    if (hours >= 1000000) {
+      formattedTime += `${Math.floor(hours / 1000000)}M:`;
+      formattedTime += `${Math.floor((hours % 1000000) / 1000)}k:`;
+      formattedTime += `${hours % 1000 < 10 ? "00" + (hours % 1000) : hours % 1000}:`;
+      formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
+      formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+    } else if (hours >= 1000) {
+      formattedTime += `${Math.floor(hours / 1000)}k:`;
+      formattedTime += `${hours % 1000 < 10 ? "00" + (hours % 1000) : hours % 1000}:`;
+      formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
+      formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+    } else {
+      formattedTime += `${hours < 10 ? "0" + hours : hours}:`;
+      formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
+      formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+    }
   
     return formattedTime;
   };
-  
-  
-  
-  
 
   const toggleStopwatch = (id: string) => {
     setStopwatches((prev) =>
@@ -154,8 +154,8 @@ export default function App() {
   const formattedMainTime = formatMainTime(mainTime);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-full max-w-[600px]">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center sm:scale-90">
+      <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-[500px] sm:w-[350px]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <Timer className="w-8 h-8 text-blue-400 mr-2" />
