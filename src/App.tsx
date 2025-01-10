@@ -69,9 +69,42 @@ export default function App() {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  
+    // Separate full 1k hours and 1M hours
+    const fullMHours = Math.floor(hours / 1000000); // Full 1M hours
+    const fullKHours = Math.floor((hours % 1000000) / 1000); // Full 1k hours
+    const remainingHours = hours % 1000; // Remaining hours
+  
+    // Build the time string
+    let formattedTime = "";
+  
+    if (fullMHours > 0) {
+      formattedTime += `${fullMHours}M`;
+    } else if (fullKHours > 0) {
+      formattedTime += `${fullKHours}k`;
+    } else {
+      formattedTime += remainingHours.toString();
+    }
+  
+    // Always include minutes and seconds
+    formattedTime += `:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  
+    return formattedTime;
+  };
+
+  const getFontSizeClass = (formattedTime: string) => {
+    const length = formattedTime.length;
+
+    // Adjust these thresholds and sizes based on your design preferences
+    if (length < 10) {
+      return "text-6xl"; // For short times (e.g., hours < 10)
+    } else if (length < 15) {
+      return "text-5xl"; // For medium-length times
+    } else if (length < 20) {
+      return "text-4xl"; // For longer times
+    } else {
+      return "text-3xl"; // For very long times (e.g., 1k hours)
+    }
   };
 
   const toggleStopwatch = (id: string) => {
@@ -127,6 +160,8 @@ export default function App() {
     localStorage.setItem("savedStopwatches", JSON.stringify(stopwatches));
   };
 
+  const formattedMainTime = formatTime(mainTime);
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
       <div className="bg-white/10 backdrop-blur-lg p-8 rounded-2xl shadow-xl w-96">
@@ -179,8 +214,8 @@ export default function App() {
 
         <div className="mb-8">
           <h2 className="text-white text-xl">Main Stopwatch</h2>
-          <div className="w-full bg-white/20 text-white text-4xl font-mono text-center p-4 rounded-lg">
-            {formatTime(mainTime)}
+          <div className={`w-full bg-white/20 text-white font-mono text-center p-4 rounded-lg ${getFontSizeClass(formattedMainTime)}`}>
+            {formattedMainTime}
           </div>
         </div>
 
