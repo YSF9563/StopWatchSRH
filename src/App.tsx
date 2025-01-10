@@ -62,9 +62,17 @@ export default function App() {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
 
-    return `${hours.toString().padStart(3, "0")}:${minutes
-      .toString()
-      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+    // If hours exceed 999, show the number of million hours
+    let formattedHours;
+    if (hours >= 1000000) {
+      // Calculate the number of million hours
+      const millionHours = Math.floor(hours / 1000000);
+      formattedHours = millionHours.toString().padStart(1, "0");
+    } else {
+      formattedHours = hours.toString().padStart(3, "0");
+    }
+
+    return `${formattedHours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
   };
 
   const handleEdit = () => {
