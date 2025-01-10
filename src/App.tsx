@@ -11,17 +11,9 @@ interface SavedStopwatch {
 
 export default function App() {
   const calculateInitialTime = () => {
-    const nowInBelgium = new Date(
-      new Date().toLocaleString("en-US", {
-        timeZone: "Europe/Brussels",
-      })
-    );
-    const pastTime = new Date(nowInBelgium);
-    pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 4 days
-    pastTime.setHours(17); // 5:40 PM (17:40 in 24-hour format)
-    pastTime.setMinutes(39);
-    pastTime.setSeconds(59);
-    return pastTime.getTime();
+    // Hardcoding the desired start time: January 6, 2025 at 17:40
+    const startTime = new Date("2025-01-06T17:40:00+01:00");
+    return startTime.getTime();
   };
 
   const [mainTime, setMainTime] = useState(0);
@@ -157,7 +149,7 @@ export default function App() {
       )
     );
     setEditingName(null);
-    localStorage.setItem("savedStopwatches", JSON.stringify(stopwatches));
+    localStorage.setItem("savedStopwwatches", JSON.stringify(stopwatches));
   };
 
   const formattedMainTime = formatTime(mainTime);
@@ -217,6 +209,9 @@ export default function App() {
           <div className={`w-full bg-white/20 text-white font-mono text-center p-4 rounded-lg ${getFontSizeClass(formattedMainTime)}`}>
             {formattedMainTime}
           </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Started on: January 6, 2025 at 17:40
+          </p>
         </div>
 
         <div className="mb-8 space-y-4">
