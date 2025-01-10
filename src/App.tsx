@@ -6,6 +6,7 @@ interface SavedStopwatch {
   name: string;
   time: number;
   isRunning: boolean;
+  lastRunTimestamp: number; // Add lastRunTimestamp to track when it was last running
   createdAt: string;
 }
 
@@ -51,6 +52,7 @@ export default function App() {
       name: saveName || "New Stopwatch",
       time: 0,
       isRunning: false,
+      lastRunTimestamp: 0, // Initialize lastRunTimestamp
       createdAt: new Date().toISOString(),
     };
     setStopwatches((prev) => [...prev, newStopwatch]);
@@ -66,7 +68,8 @@ export default function App() {
     setStopwatches((prev) =>
       prev.map((sw) => {
         if (sw.isRunning) {
-          return { ...sw, time: sw.time + 1000 }; // Increment stopwatch time if running
+          const timeElapsed = Date.now() - sw.lastRunTimestamp;
+          return { ...sw, time: sw.time + timeElapsed, lastRunTimestamp: Date.now() }; // Update time with timeElapsed
         }
         return sw;
       })
@@ -92,7 +95,13 @@ export default function App() {
   const toggleStopwatch = (id: string) => {
     setStopwatches((prev) =>
       prev.map((sw) =>
-        sw.id === id ? { ...sw, isRunning: !sw.isRunning } : sw
+        sw.id === id
+          ? {
+              ...sw,
+              isRunning: !sw.isRunning,
+              lastRunTimestamp: !sw.isRunning ? Date.now() : sw.lastRunTimestamp,
+            }
+          : sw
       )
     );
   };
@@ -100,7 +109,9 @@ export default function App() {
   const resetStopwatch = (id: string) => {
     setStopwatches((prev) =>
       prev.map((sw) =>
-        sw.id === id ? { ...sw, time: 0, isRunning: false } : sw
+        sw.id === id
+          ? { ...sw, time: 0, isRunning: false, lastRunTimestamp: 0 }
+          : sw
       )
     );
   };
