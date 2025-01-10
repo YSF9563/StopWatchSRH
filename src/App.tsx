@@ -9,10 +9,15 @@ interface SavedStopwatch {
 }
 
 export default function App() {
+  // Get Belgium's current time using the Europe/Brussels time zone
   const calculateInitialTime = () => {
-    const now = new Date();
-    const pastTime = new Date();
-    pastTime.setDate(now.getDate() - 4); // Go back 5 days
+    const nowInBelgium = new Date(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "Europe/Brussels",
+      }).format(new Date())
+    );
+    const pastTime = new Date(nowInBelgium);
+    pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 5 days
     pastTime.setHours(17); // 5:40 PM (17:40 in 24-hour format)
     pastTime.setMinutes(39);
     pastTime.setSeconds(59);
