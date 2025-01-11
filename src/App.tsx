@@ -11,18 +11,6 @@ interface SavedStopwatch {
 }
 
 export default function App() {
-  const calculateInitialTime = () => {
-    const nowInBelgium = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" })
-    );
-    const pastTime = new Date(nowInBelgium);
-    pastTime.setDate(nowInBelgium.getDate() - 4); // Go back 4 days
-    pastTime.setHours(17); // 5:40 PM (17:40 in 24-hour format)
-    pastTime.setMinutes(39);
-    pastTime.setSeconds(59);
-    return pastTime.getTime();
-  };
-
   const [mainTime, setMainTime] = useState(0);
   const [stopwatches, setStopwatches] = useState<SavedStopwatch[]>([]);
   const [saveName, setSaveName] = useState("");
@@ -30,7 +18,30 @@ export default function App() {
   const [editingName, setEditingName] = useState<string | null>(null);
   const [newName, setNewName] = useState<string>("");
 
-  const [referenceTime] = useState(calculateInitialTime());
+  const [currentBelgiumTime, setCurrentBelgiumTime] = useState(0);
+
+  // Hardcoded fixed reference time: January 6, 2025 at 17:40 (Belgium time)
+  const fixedReferenceTime = new Date("2025-01-06T17:40:00+01:00").getTime(); // Belgium timezone is UTC+1 at this time
+
+  const fetchBelgiumTime = async () => {
+    try {
+      // Fetch current time in Belgium from the WorldTime API
+      const response = await fetch("http://worldtimeapi.org/api/timezone/Europe/Brussels");
+      const data = await response.json();
+      return new Date(data.utc_datetime).getTime(); // Get UTC time of Belgium
+    } catch (error) {
+      console.error("Error fetching Belgium time:", error);
+    }
+  };
+
+  // Set reference time and Belgium current time when the app is first loaded
+  useEffect(() => {
+    const init = async () => {
+      const belgiumTime = await fetchBelgiumTime();
+      setCurrentBelgiumTime(belgiumTime);
+    };
+    init();
+  }, []);
 
   // Load saved stopwatches from localStorage on initial render
   useEffect(() => {
@@ -58,64 +69,78 @@ export default function App() {
     setSaveName("");
   };
 
-  const updateStopwatchTime = () => {
-    const nowInBelgium = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "Europe/Brussels" })
-    );
-    setMainTime(nowInBelgium.getTime() - referenceTime);
-
-    setStopwatches((prev) =>
-      prev.map((sw) => {
-        if (sw.isRunning) {
-          const timeElapsed = Date.now() - sw.lastRunTimestamp;
-          return { ...sw, time: sw.time + timeElapsed, lastRunTimestamp: Date.now() };
-        }
-        return sw;
-      })
-    );
-  };
-
+  // Update main stopwatch every second
   useEffect(() => {
-    const interval = setInterval(updateStopwatchTime, 1000);
-    return () => clearInterval(interval);
-  }, [referenceTime]);
+    const interval = setInterval(() => {
+      const currentTimeInBelgium = new Date().getTime();
+      
+      // Calculate elapsed time since the fixed reference time (in milliseconds)
+      const elapsedTime = currentTimeInBelgium - fixedReferenceTime;
+
+      // Update main time
+      setMainTime(elapsedTime);
+
+      // Update running stopwatches
+      setStopwatches((prev) =>
+        prev.map((sw) => {
+          if (sw.isRunning) {
+            const timeElapsed = currentTimeInBelgium - sw.lastRunTimestamp;
+            return { ...sw, time: sw.time + timeElapsed, lastRunTimestamp: currentTimeInBelgium };
+          }
+          return sw;
+        })
+      );
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval); // Cleanup on component unmount
+  }, []);
 
   const formatMainTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
   
+    // Calculate hours in a way that can scale to K or M
+    const hours = Math.floor(totalSeconds / 3600);
+  
     let formattedTime = "";
   
+    // Format for 1 million and 1 thousand
     if (hours >= 1000000) {
-      formattedTime += `${Math.floor(hours / 1000000)}M:`;
-      formattedTime += `${Math.floor((hours % 1000000) / 1000)}k:`;
-      formattedTime += `${hours % 1000 < 10 ? "00" + (hours % 1000) : hours % 1000}:`;
-      formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
-      formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+      const millionHours = Math.floor(hours / 1000000);
+      const thousandHours = Math.floor((hours % 1000000) / 1000);
+      const normalHours = hours % 1000;
+  
+      formattedTime += `${millionHours}M:`; // 1 million hours
+      formattedTime += `${thousandHours}k:`; // 1k hours
+      formattedTime += `${normalHours < 100 ? "0" + normalHours : normalHours}:`; // Normal hours
     } else if (hours >= 1000) {
-      formattedTime += `${Math.floor(hours / 1000)}k:`;
-      formattedTime += `${hours % 1000 < 10 ? "00" + (hours % 1000) : hours % 1000}:`;
-      formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
-      formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+      const thousandHours = Math.floor(hours / 1000);
+      const normalHours = hours % 1000;
+  
+      formattedTime += `${thousandHours}k:`; // 1k hours
+      formattedTime += `${normalHours < 100 ? "0" + normalHours : normalHours}:`; // Normal hours
     } else {
-      formattedTime += `${hours < 10 ? "0" + hours : hours}:`;
-      formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
-      formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
+      formattedTime += `${hours < 10 ? "0" + hours : hours}:`; // Normal hours
     }
+  
+    // Format minutes and seconds
+    formattedTime += `${minutes < 10 ? "0" + minutes : minutes}:`;
+    formattedTime += `${seconds < 10 ? "0" + seconds : seconds}`;
   
     return formattedTime;
   };
+  
 
   const toggleStopwatch = (id: string) => {
+    const currentTime = new Date().getTime();
     setStopwatches((prev) =>
       prev.map((sw) =>
         sw.id === id
           ? {
               ...sw,
               isRunning: !sw.isRunning,
-              lastRunTimestamp: !sw.isRunning ? Date.now() : sw.lastRunTimestamp,
+              lastRunTimestamp: !sw.isRunning ? currentTime : sw.lastRunTimestamp,
             }
           : sw
       )
@@ -144,9 +169,7 @@ export default function App() {
 
   const handleNameChange = (id: string) => {
     setStopwatches((prev) =>
-      prev.map((sw) =>
-        sw.id === id ? { ...sw, name: newName } : sw
-      )
+      prev.map((sw) => (sw.id === id ? { ...sw, name: newName } : sw))
     );
     setEditingName(null);
   };
@@ -209,7 +232,7 @@ export default function App() {
             {formattedMainTime}
           </div>
           <p className="text-xs text-gray-400">
-            monday 6 jan 2025 at 17:40
+            Monday, 6 Jan 2025 at 17:40 (Belgium Time)
           </p>
         </div>
 
@@ -248,6 +271,7 @@ export default function App() {
                   </p>
                 </>
               )}
+
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => toggleStopwatch(sw.id)}
